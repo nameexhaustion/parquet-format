@@ -193,7 +193,7 @@ impl<R: VarIntAsyncReader + AsyncRead + Unpin + Send> TInputStreamProtocol
                 let b = self.read_byte().await?;
                 match b {
                     0x01 => Ok(true),
-                    0x02 => Ok(false),
+                    0x00 | 0x02 => Ok(false),
                     unkn => Err(Error::Protocol(ProtocolError {
                         kind: ProtocolErrorKind::InvalidData,
                         message: format!("cannot convert {} into bool", unkn),
