@@ -132,7 +132,7 @@ pub trait TInputStreamProtocol: Send + Sized {
     }
 
     /// Skip a field with type `field_type` recursively up to `depth` levels.
-    async fn skip_till_depth(&mut self, field_type: TType, depth: i8) -> Result<()> {
+    async fn skip_till_depth(&mut self, field_type: TType, depth: u16) -> Result<()> {
         if depth == 0 {
             return Err(Error::Protocol(ProtocolError {
                 kind: ProtocolErrorKind::DepthLimit,
