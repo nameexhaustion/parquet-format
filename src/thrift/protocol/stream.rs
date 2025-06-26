@@ -128,11 +128,11 @@ pub trait TInputStreamProtocol: Send + Sized {
     /// Skip a field with type `field_type` recursively until the default
     /// maximum skip depth is reached.
     async fn skip(&mut self, field_type: TType) -> Result<()> {
-        self.skip_till_depth(field_type, MAXIMUM_SKIP_DEPTH).await
+        self.skip_till_depth(field_type).await
     }
 
     /// Skip a field with type `field_type` recursively up to `depth` levels.
-    async fn skip_till_depth(&mut self, field_type: TType, depth: u16) -> Result<()> {
+    async fn skip_till_depth(&mut self, field_type: TType) -> Result<()> {
         if depth == 0 {
             return Err(Error::Protocol(ProtocolError {
                 kind: ProtocolErrorKind::DepthLimit,
@@ -155,24 +155,21 @@ pub trait TInputStreamProtocol: Send + Sized {
                     if field_ident.field_type == TType::Stop {
                         break;
                     }
-                    self.skip_till_depth(field_ident.field_type, depth - 1)
-                        .await?;
+                    self.skip_till_depth(field_ident.field_type).await?;
                 }
                 self.read_struct_end().await
             }
             TType::List => {
                 let list_ident = self.read_list_begin().await?;
                 for _ in 0..list_ident.size {
-                    self.skip_till_depth(list_ident.element_type, depth - 1)
-                        .await?;
+                    self.skip_till_depth(list_ident.element_type).await?;
                 }
                 self.read_list_end().await
             }
             TType::Set => {
                 let set_ident = self.read_set_begin().await?;
                 for _ in 0..set_ident.size {
-                    self.skip_till_depth(set_ident.element_type, depth - 1)
-                        .await?;
+                    self.skip_till_depth(set_ident.element_type).await?;
                 }
                 self.read_set_end().await
             }
@@ -185,8 +182,8 @@ pub trait TInputStreamProtocol: Send + Sized {
                     let val_type = map_ident
                         .value_type
                         .expect("non-zero sized map should contain value type");
-                    self.skip_till_depth(key_type, depth - 1).await?;
-                    self.skip_till_depth(val_type, depth - 1).await?;
+                    self.skip_till_depth(key_type).await?;
+                    self.skip_till_depth(val_type).await?;
                 }
                 self.read_map_end().await
             }

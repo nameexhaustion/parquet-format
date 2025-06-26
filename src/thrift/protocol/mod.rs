@@ -50,12 +50,6 @@ mod compact_stream_write;
 #[cfg_attr(docsrs, doc(cfg(feature = "async")))]
 pub use compact_stream_write::TCompactOutputStreamProtocol;
 
-// Default maximum depth to which `TInputProtocol::skip` will skip a Thrift
-// field. A default is necessary because Thrift structs or collections may
-// contain nested structs and collections, which could result in indefinite
-// recursion.
-const MAXIMUM_SKIP_DEPTH: u16 = 65535;
-
 pub trait ReadThrift: Sized {
     fn read_from_in_protocol<T: TInputProtocol>(i_prot: &mut T) -> crate::thrift::Result<Self>;
 }
@@ -144,17 +138,10 @@ pub trait TInputProtocol: Sized {
     /// Skip a field with type `field_type` recursively until the default
     /// maximum skip depth is reached.
     fn skip(&mut self, field_type: TType) -> crate::thrift::Result<()> {
-        self.skip_till_depth(field_type, MAXIMUM_SKIP_DEPTH)
+        self.skip_till_depth(field_type)
     }
     /// Skip a field with type `field_type` recursively up to `depth` levels.
-    fn skip_till_depth(&mut self, field_type: TType, depth: u16) -> crate::thrift::Result<()> {
-        if depth == 0 {
-            return Err(crate::thrift::Error::Protocol(ProtocolError {
-                kind: ProtocolErrorKind::DepthLimit,
-                message: format!("cannot parse past {:?}", field_type),
-            }));
-        }
-
+    fn skip_till_depth(&mut self, field_type: TType) -> crate::thrift::Result<()> {
         match field_type {
             TType::Bool => self.read_bool().map(|_| ()),
             TType::I08 => self.read_i8().map(|_| ()),
@@ -170,21 +157,21 @@ pub trait TInputProtocol: Sized {
                     if field_ident.field_type == TType::Stop {
                         break;
                     }
-                    self.skip_till_depth(field_ident.field_type, depth - 1)?;
+                    self.skip_till_depth(field_ident.field_type)?;
                 }
                 self.read_struct_end()
             }
             TType::List => {
                 let list_ident = self.read_list_begin()?;
                 for _ in 0..list_ident.size {
-                    self.skip_till_depth(list_ident.element_type, depth - 1)?;
+                    self.skip_till_depth(list_ident.element_type)?;
                 }
                 self.read_list_end()
             }
             TType::Set => {
                 let set_ident = self.read_set_begin()?;
                 for _ in 0..set_ident.size {
-                    self.skip_till_depth(set_ident.element_type, depth - 1)?;
+                    self.skip_till_depth(set_ident.element_type)?;
                 }
                 self.read_set_end()
             }
@@ -197,8 +184,8 @@ pub trait TInputProtocol: Sized {
                     let val_type = map_ident
                         .value_type
                         .expect("non-zero sized map should contain value type");
-                    self.skip_till_depth(key_type, depth - 1)?;
-                    self.skip_till_depth(val_type, depth - 1)?;
+                    self.skip_till_depth(key_type)?;
+                    self.skip_till_depth(val_type)?;
                 }
                 self.read_map_end()
             }
