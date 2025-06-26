@@ -133,13 +133,6 @@ pub trait TInputStreamProtocol: Send + Sized {
 
     /// Skip a field with type `field_type` recursively up to `depth` levels.
     async fn skip_till_depth(&mut self, field_type: TType) -> Result<()> {
-        if depth == 0 {
-            return Err(Error::Protocol(ProtocolError {
-                kind: ProtocolErrorKind::DepthLimit,
-                message: format!("cannot parse past {:?}", field_type),
-            }));
-        }
-
         match field_type {
             TType::Bool => self.read_bool().await.map(|_| ()),
             TType::I08 => self.read_i8().await.map(|_| ()),
