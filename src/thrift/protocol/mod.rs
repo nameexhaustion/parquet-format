@@ -54,7 +54,7 @@ pub use compact_stream_write::TCompactOutputStreamProtocol;
 // field. A default is necessary because Thrift structs or collections may
 // contain nested structs and collections, which could result in indefinite
 // recursion.
-const MAXIMUM_SKIP_DEPTH: i8 = 64;
+const MAXIMUM_SKIP_DEPTH: u16 = 65535;
 
 pub trait ReadThrift: Sized {
     fn read_from_in_protocol<T: TInputProtocol>(i_prot: &mut T) -> crate::thrift::Result<Self>;
@@ -147,7 +147,7 @@ pub trait TInputProtocol: Sized {
         self.skip_till_depth(field_type, MAXIMUM_SKIP_DEPTH)
     }
     /// Skip a field with type `field_type` recursively up to `depth` levels.
-    fn skip_till_depth(&mut self, field_type: TType, depth: i8) -> crate::thrift::Result<()> {
+    fn skip_till_depth(&mut self, field_type: TType, depth: u16) -> crate::thrift::Result<()> {
         if depth == 0 {
             return Err(crate::thrift::Error::Protocol(ProtocolError {
                 kind: ProtocolErrorKind::DepthLimit,
